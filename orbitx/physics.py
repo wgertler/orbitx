@@ -344,45 +344,21 @@ class PEngine(object):
             Xa[self.HabIndex]+=ship_xa
             Ya[self.HabIndex]+=ship_ya
             fuel_cons=np.zeros(len(y.Fuel))
-            #Engine_speed[self.HabIndex]=Engine_speed[self.HabIndex]-y.Throttle[self.HabIndex]
-            #S_A[self.HabIndex]=S_V[self.HabIndex]-y.Spin[self.HabIndex]
-            #print("............")
-            #print(y.Heading[self.HabIndex])
-            #print(y.Spin[self.HabIndex])
-            #print(Spin[self.HabIndex])
-            #print(self.actions["spin"])
-            #print(S_V[self.HabIndex])
-            #print(S_A[self.HabIndex])
+
             fuel_cons[self.HabIndex]=self.Habitat.get_fuel_cons(Engine_speed[self.HabIndex]>0,S_A[self.HabIndex]>0)
             #test run remove when it's release (change)
-            self.actions["throttle"][self.HabIndex]=1
-            if y.Spin[self.HabIndex] < -3:
-                self.actions["spin"][self.HabIndex]=1
-            elif y.Spin[self.HabIndex] > 3:
-                self.actions["spin"][self.HabIndex]=-1
-            else:
-                if y.Heading[self.HabIndex]%(6.2831) < (5.1):
-                    self.actions["spin"][self.HabIndex]=1
-                elif y.Heading[self.HabIndex]%(6.2831) > (5.8):
-                    self.actions["spin"][self.HabIndex]=-1
-                else:
-                    self.actions["spin"][self.HabIndex]=0
-            with open('out.txt', 'a') as f:
-                f.write(".........................\n")
-                f.write(str(y.Heading[self.HabIndex]))
-                f.write(" ")
-                f.write(str(y.Spin[self.HabIndex]))
-                f.write(" ")
-                f.write(str(self.actions["spin"][self.HabIndex]))
-                f.write(" ")
-                f.write(str(S_A[self.HabIndex]))
-                f.write(" ")
-                f.write(str(S_V[self.HabIndex]))
-                f.write(" ")
-                f.write(str(Spin[self.HabIndex]))
-                f.write(" ")
-                f.write(str(T_V[self.HabIndex]))
-                f.write("\n")
+            #self.actions["throttle"][self.HabIndex]=1
+            #if y.Spin[self.HabIndex] < -3:
+            #    self.actions["spin"][self.HabIndex]=1
+            #elif y.Spin[self.HabIndex] > 3:
+            #    self.actions["spin"][self.HabIndex]=-1
+            #else:
+            #    if y.Heading[self.HabIndex]%(6.2831) < (5.1):
+            #        self.actions["spin"][self.HabIndex]=1
+            #    elif y.Heading[self.HabIndex]%(6.2831) > (5.8):
+            #        self.actions["spin"][self.HabIndex]=-1
+            #    else:
+            #        self.actions["spin"][self.HabIndex]=0
         else:
             fuel_cons=zeros
             S_A=zeros
