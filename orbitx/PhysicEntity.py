@@ -1,6 +1,6 @@
-import numpy as np
 
 from . import orbitx_pb2 as protos
+import numpy as np
 
 
 class PhysicsEntity(object):
@@ -13,7 +13,6 @@ class PhysicsEntity(object):
         self.m = entity.mass
         self.spin = entity.spin
         self.heading = entity.heading
-        self.fuel = entity.fuel
         self.throttle = entity.throttle
 
     def as_proto(self):
@@ -27,7 +26,6 @@ class PhysicsEntity(object):
             mass=self.m,
             spin=self.spin,
             heading=self.heading,
-            fuel=self.fuel,
             throttle=self.throttle
         )
 
@@ -48,9 +46,10 @@ class BasicEngine(object):
             throttle=-self.max_throttle_increase
         return throttle
     def _calc_acc(self,throttle):
-        return min(max(0,self.max_acc*throttle),self.max_acc)
+        real_t=min(max(0,self.max_acc*throttle),self.max_acc)
+        return real_t, (throttle>self.max_acc or throttle<0)
 class BasicReactionWheel(object):
-    def __init__(self,fuel_cons=0.1,max_spin_increase=0.01,max_spin_acc=100):
+    def __init__(self,fuel_cons=0.1,max_spin_increase=0.01,max_spin_acc=1): #spin acc in rad
         self.fuel_consumption=fuel_cons #fuel consumed per sec at max throttle
         self.max_spin_increase=max_spin_increase # max spin increase every second
         self.max_spin_acc=max_spin_acc #max spin acceleration
@@ -61,7 +60,8 @@ class BasicReactionWheel(object):
             spin=-self.max_spin_increase
         return spin
     def _calc_acc(self,spin):
-        return min(max(-self.max_spin_acc,self.max_spin_acc*spin),self.max_spin_acc)
+        real_s=min(max(-self.max_spin_acc,self.max_spin_acc*spin),self.max_spin_acc)
+        return real_s, real_s==spin
 class Habitat(PhysicsEntity):
     def __init__(self, entity):
         super().__init__(entity)
@@ -81,20 +81,42 @@ class Habitat(PhysicsEntity):
         self.spin=spin
         self.throttle=throttle
         self.fuel=fuel
-    def step(self,actions=None):
+    def get_fuel_cons(self,Engine,RW):
+        #if CHEAT_FUEL:
+        #    return 0
+        fuel=0
+        if Engine:
+            fuel+=self.Engine.fuel_consumption
+        if RW:
+            fuel+=self.RW.fuel_consumption
+        return fuel
+    def step(self,actions=None,index=None): # need major rewrite
         '''
         for now actions is a dict {"throttle":x,"spin":x}
         return additional vector acceleration and spin acceleration 
         '''
         if actions is not None:
-            throttle=actions["throttle"]
-            spin=actions["spin"]
-            throttle=self.Engine.action_check(throttle)
-            spin=self.RW.action_check(spin)
-            t_acc=self.Engine._calc_acc(throttle)
-            spin_acc=self.RW._calc_acc(spin)
-            return t_acc,spin_acc 
-    def XY_acc(self,acc,spin): #use for throttle acceleration probably can be removed later
-        pass
-        #return cos(spin_angle)*acc,sin(spin_angle)*acc
-
+            #if fuel<0 and not CHEAT_FUEL:
+            #    t_acc=np.zeros(len(throttle))
+            #    spin_acc=np.zeros(len(spin))
+            #    return t_acc,spin_acc
+            throttle=actions["throttle"].copy()
+            spin=actions["spin"].copy()
+            throttle[index]=self.Engine.action_check(throttle[index])
+            spin[index]=self.RW.action_check(spin[index])
+            #t_acc=np.zeros(len(throttle))
+            #spin_acc=np.zeros(len(spin))
+            #t_acc[index]=self.Engine._calc_acc(last[throttle][index]+throttle[index])
+            #spin_acc[index]=self.RW._calc_acc(last[spin][index]+spin[index])
+            #print(throttle[index])
+            #print(spin[index])
+            return throttle,spin 
+        t_acc=np.zeros(len(throttle))
+        spin_acc=np.zeros(len(spin))
+        return t_acc,spin_acc
+    def max_check(self,throttle,spin,index):
+        throttle[index],t_change=self.Engine._calc_acc(throttle[index])
+        spin[index],s_change=self.RW._calc_acc(spin[index])
+        return throttle,spin,t_change,s_change
+    def XY_acc(self,acc,spin_angle): #use for throttle acceleration probably can be removed later
+        return np.cos(spin_angle)*acc,np.sin(spin_angle)*acc
